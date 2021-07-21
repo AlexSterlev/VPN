@@ -305,3 +305,76 @@ status /var/log/openvpn-status.log
 log /var/log/openvpn.log
 verb 3
 ````
+Запускаем openvpn сервер:
+````
+[root@server ~]# systemctl enable --now openvpn@server
+````
+Конфиг клиента:
+````
+dev tun
+proto udp
+remote 192.168.10.10
+client
+resolv-retry infinite
+
+ca ./ca.crt
+cert ./client.crt
+key ./client.key
+
+route 192.168.10.0 255.255.255.0
+
+persist-key
+persist-tun
+
+verb 3
+````
+Подключаемся к серверу:
+````
+┌─[✗]─[san4ez@edukation]─[~]
+└──╼ $sudo openvpn --config client.conf
+Wed Jul  21 12:35:26 2021 OpenVPN 2.4.8 [git:makepkg/3976acda9bf10b5e+] x86_64-pc-linux-gnu [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] built on Oct 30 2021
+Wed Jul  21 12:35:26 2021 library versions: OpenSSL 1.1.1d  10 Sep 2021, LZO 2.10
+Wed Jul  21 12:35:26 2021 Outgoing Control Channel Authentication: Using 160 bit message hash 'SHA1' for HMAC authentication
+Wed Jul  21 12:35:26 2021 Incoming Control Channel Authentication: Using 160 bit message hash 'SHA1' for HMAC authentication
+Wed Jul  21 12:35:26 2021 TCP/UDP: Preserving recently used remote address: [AF_INET]192.168.10.10:1194
+Wed Jul  21 12:35:26 2021 Socket Buffers: R=[212992->212992] S=[212992->212992]
+Wed Jul  21 12:35:26 2021 UDP link local (bound): [AF_INET][undef]:1194
+Wed Jul  21 12:35:26 2021 UDP link remote: [AF_INET]192.168.10.10:1194
+Wed Jul  21 12:35:26 2021 TLS: Initial packet from [AF_INET]192.168.10.10:1194, sid=0311008a 6342c53d
+Wed Jul  21 12:35:26 2021 VERIFY OK: depth=1, CN=rasvpn
+Wed Jul  21 12:35:26 2021 VERIFY KU OK
+Wed Jul  21 12:35:26 2021 Validating certificate extended key usage
+Wed Jul  21 12:35:26 2021 ++ Certificate has EKU (str) TLS Web Server Authentication, expects TLS Web Server Authentication
+Wed Jul  21 12:35:26 2021 VERIFY EKU OK
+Wed Jul  21 12:35:26 2021 VERIFY OK: depth=0, CN=server
+Wed Jul  21 12:35:26 2021 [server] Peer Connection Initiated with [AF_INET]192.168.10.10:1194
+Wed Jul  21 12:35:48 2021 PUSH: Received control message: 'PUSH_REPLY,route 192.168.10.0 255.255.255.0,route 10.10.10.0 255.255.255.0,topology net30,ping 10,ping-restart 120,ifconfig 10.10.10.6 10.10.10.5,peer-id 0,cipher AES-256-GCM'
+...
+Wed Jul  21 12:35:48 2021 Initialization Sequence Completed
+````
+Проверяем:
+````
+┌─[san4ez@edukation]─[~]
+└──╼ $ip -c a s dev tun0
+5: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UNKNOWN group default qlen 100
+    link/none 
+    inet 10.10.10.6 peer 10.10.10.5/32 scope global tun0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::8869:d771:c935:18d5/64 scope link stable-privacy 
+       valid_lft forever preferred_lft forever
+
+┌─[san4ez@edukation]─[~]
+└──╼ $ip r | grep tun
+10.10.10.0/24 via 10.10.10.5 dev tun0 
+10.10.10.5 dev tun0 proto kernel scope link src 10.10.10.6 
+
+┌─[sinister@desk]─[~]
+└──╼ $ping -c 4 10.10.10.1
+PING 10.10.10.1 (10.10.10.1) 56(84) bytes of data.
+▁▁▁▁
+ 0/  4 ( 0%) lost;    0/   0/   0ms; last:    0ms
+ 0/  4 ( 0%) lost;    0/   0/   0/   0ms (last 4)
+--- 10.10.10.1 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3026ms
+rtt min/avg/max/mdev = 0.477/0.564/0.708/0.088 ms
+````

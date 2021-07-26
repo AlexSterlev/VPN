@@ -368,7 +368,7 @@ Wed Jul  21 12:35:48 2021 Initialization Sequence Completed
 10.10.10.0/24 via 10.10.10.5 dev tun0 
 10.10.10.5 dev tun0 proto kernel scope link src 10.10.10.6 
 
-┌─[sinister@desk]─[~]
+┌─[san4ez@education]─[~]
 └──╼ $ping -c 4 10.10.10.1
 PING 10.10.10.1 (10.10.10.1) 56(84) bytes of data.
 ▁▁▁▁

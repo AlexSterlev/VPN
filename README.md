@@ -244,6 +244,58 @@ Connecting to host 10.10.10.1, port 5201
 
 iperf Done.
 ````
+Как видно из результатов замера скорости в данном случае разница минимальна, но если мы воспользуемся утилитой arping разница в природе TUN и TAP будет более очевидна.
+### TAP
+````
+[root@client ~]# arping  10.10.10.1 -I tap0
+ARPING 10.10.10.1 from 10.10.10.2 tap0
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  3.447ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  2.791ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  5.123ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  3.083ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  2.911ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  2.969ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  2.957ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  3.085ms
+Unicast reply from 10.10.10.1 [4A:78:5F:5C:61:6E]  3.293ms
+````
+### TUN
+Интерфейс tun0 поднят и работает.
+````
+[root@client ~]# ip -c a s dev tun0
+3: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UNKNOWN group default qlen 100
+    link/none
+    inet 10.10.10.2/24 brd 10.10.10.255 scope global tun0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::f337:2724:1e84:4669/64 scope link flags 800
+       valid_lft forever preferred_lft forever
+ ````
+ Но утилита arping ведет себя следующим образом:
+ ````
+ [root@client ~]# sudo arping  10.10.10.1 -I tun0
+arping: Device tun0 not available.
+````
+## TAP vs TUN
+TAP:
+плюсы
+- ведет себя как настоящий сетевой адаптер (за исключением виртуального сетевого адаптера)
+- может передавать любые сетевые протоколы (IPv4, IPv6, Netalk, IPX и т. д.)
+- Работает на уровне 2, то есть кадры Ethernet передаются через туннель VPN
+- Может использоваться в мостовых соединениях
+минусы
+- требует гораздо больше накладных расходов на широковещательную передачу в туннеле VPN
+- добавляет накладные расходы заголовков Ethernet на все пакеты, транспортируемые через туннель VPN
+- плохо масштабируется
+
+TUN:
+плюсы
+- меньшие накладные расходы трафика, передаёт только трафик, предназначенный для VPN-клиента
+- передаёт только IP-пакеты уровня 3
+минусы
+- широковещательный трафик обычно не передается
+- может передавать только IPv4 (OpenVPN 2.3 добавляет потдержку IPv6)
+- не может использоваться в мостовых соединениях.
+
 ## RAS
 Устанавливаем сервер:
 ````
